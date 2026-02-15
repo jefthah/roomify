@@ -1,7 +1,9 @@
 import { CheckCircle2, ImageIcon, UploadIcon } from "lucide-react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router";
 import {
+  ALLOWED_FILE_TYPES,
+  MAX_FILE_SIZE_BYTES,
   PROGRESS_INCREMENT,
   PROGRESS_INTERVAL_MS,
   REDIRECT_DELAY_MS,
@@ -15,28 +17,62 @@ const Upload = ({ onComplete }: UploadProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { isSignedIn } = useOutletContext<AuthContext>();
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const validateFile = (selectedFile: File): string | null => {
+    if (!ALLOWED_FILE_TYPES.includes(selectedFile.type)) {
+      return "Invalid file type. Please upload a JPG or PNG image.";
+    }
+    if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
+      return `File too large. Maximum size is ${MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB.`;
+    }
+    return null;
+  };
 
   const processFile = useCallback(
     (selectedFile: File) => {
       if (!isSignedIn) return;
 
+      const validationError = validateFile(selectedFile);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+
+      setError(null);
       setFile(selectedFile);
       setProgress(0);
+
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result as string;
 
-        const interval = setInterval(() => {
+        intervalRef.current = setInterval(() => {
           setProgress((prev) => {
             const next = Math.min(prev + PROGRESS_INCREMENT, 100);
 
             if (next >= 100) {
-              clearInterval(interval);
-              setTimeout(() => {
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              intervalRef.current = null;
+
+              timeoutRef.current = setTimeout(() => {
                 onComplete?.(base64);
+                timeoutRef.current = null;
               }, REDIRECT_DELAY_MS);
             }
 
@@ -52,6 +88,7 @@ const Upload = ({ onComplete }: UploadProps) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isSignedIn) return;
+    setError(null);
     const selected = e.target.files?.[0];
     if (selected) processFile(selected);
   };
@@ -72,6 +109,7 @@ const Upload = ({ onComplete }: UploadProps) => {
     setIsDragging(false);
     if (!isSignedIn) return;
 
+    setError(null);
     const dropped = e.dataTransfer.files?.[0];
     if (dropped) processFile(dropped);
   };
@@ -103,7 +141,8 @@ const Upload = ({ onComplete }: UploadProps) => {
                 ? "Drag and drop your floor plan here, or click to select a file"
                 : "Please sign in to upload your floor plan"}
             </p>
-            <p className="help">Maximum file size 50mb</p>
+            <p className="help">Maximum file size 10MB</p>
+            {error && <p className="upload-error">{error}</p>}
           </div>
         </div>
       ) : (

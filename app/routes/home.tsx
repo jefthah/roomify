@@ -18,6 +18,8 @@ export default function Home() {
   const handleUploadComplete = async (base64Image: string) => {
     const newId = Date.now().toString();
 
+    sessionStorage.setItem(`roomify-upload-${newId}`, base64Image);
+
     navigate(`/visualize/${newId}`);
   };
   return (
