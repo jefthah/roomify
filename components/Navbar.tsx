@@ -33,12 +33,12 @@ const Navbar = () => {
             <span className="name">Roomify</span>
           </div>
 
-          <ul className="links">
+          <div className="links">
             <a href="#">Products</a>
             <a href="#">Pricing</a>
             <a href="#">Community</a>
             <a href="#">Enterprise</a>
-          </ul>
+          </div>
         </div>
 
         <div className="actions">
