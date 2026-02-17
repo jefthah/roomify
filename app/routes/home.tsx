@@ -4,6 +4,8 @@ import { ArrowRight, ArrowUp, ArrowUpRight, Clock, Layers } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import Upload from "../../components/ui/Upload";
 import { useNavigate } from "react-router";
+import { useState } from "react";
+import { createProjectUser } from "../../lib/puter.action";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -14,13 +16,38 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const [projects, setProjects] = useState<DesignItem[]>([]);
 
   const handleUploadComplete = async (base64Image: string) => {
     const newId = Date.now().toString();
+    const name = `Residence ${newId}`;
+
+    const newItem = {
+      id: newId,
+      name,
+      sourceImage: base64Image,
+      renderedImage: undefined,
+      timestamp: Date.now(),
+    };
+
+    const saved = await createProjectUser({ item: newItem, visibility: 'private' });
+
+    if (!saved) {
+      console.error('failed to create project');
+      return false
+    }
+
+    setProjects((prev) => [newItem, ...prev]);
 
     sessionStorage.setItem(`roomify-upload-${newId}`, base64Image);
 
-    navigate(`/visualize/${newId}`);
+    navigate(`/visualize/${newId}`, {
+      state: {
+        initialImage: saved.sourceImage,
+        initialRender: saved.renderedImage || null,
+        name,
+      }
+    });
   };
   return (
     <div className="home">
@@ -81,11 +108,12 @@ export default function Home() {
           </div>
 
           <div className="projects-grid">
-            <div className="project-card group">
+            {projects.map(({id, name, renderedImage, sourceImage, timestamp}) => (
+            <div key={id} className="project-card group">
               <div className="preview">
                 <img
-                  src="https://roomify-mlhuk267-dfwu1i.puter.site/projects/1770803585402/rendered.png"
-                  alt="Project"
+                  src={renderedImage || sourceImage}
+                  alt={name || "Project"}
                 />
 
                 <div className="card-body">
@@ -95,10 +123,10 @@ export default function Home() {
 
               <div className="card-body">
                 <div>
-                  <h3>Project</h3>
+                  <h3>{name}</h3>
                   <div className="meta">
                     <Clock size={12} />
-                    <span>{new Date(`01.01.2027`).toLocaleDateString()}</span>
+                    <span>{new Date(timestamp).toLocaleDateString()}</span>
                     <span>By Jefta Supraja</span>
                   </div>
                 </div>
@@ -108,6 +136,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
+            ))}
           </div>
         </div>
       </section>
