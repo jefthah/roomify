@@ -2,9 +2,9 @@ export const PUTER_WORKER_URL = import.meta.env.VITE_PUTER_WORKER_URL || "";
 
 // Storage Paths
 export const STORAGE_PATHS = {
-    ROOT: "roomify",
-    SOURCES: "roomify/sources",
-    RENDERS: "roomify/renders",
+  ROOT: "roomify",
+  SOURCES: "roomify/sources",
+  RENDERS: "roomify/renders",
 } as const;
 
 // Timing Constants (in milliseconds)
@@ -29,32 +29,34 @@ export const UNAUTHORIZED_STATUSES = [401, 403];
 export const IMAGE_RENDER_DIMENSION = 1024;
 
 export const ROOMIFY_RENDER_PROMPT = `
-TASK: Convert the input 2D floor plan into a **photorealistic, top‑down 3D architectural render**.
+You are a professional architectural visualization artist. Convert the input 2D floor plan image into a stunning, photorealistic top-down 3D architectural render.
 
-STRICT REQUIREMENTS (do not violate):
-1) **REMOVE ALL TEXT**: Do not render any letters, numbers, labels, dimensions, or annotations. Floors must be continuous where text used to be.
-2) **GEOMETRY MUST MATCH**: Walls, rooms, doors, and windows must follow the exact lines and positions in the plan. Do not shift or resize.
-3) **TOP‑DOWN ONLY**: Orthographic top‑down view. No perspective tilt.
-4) **CLEAN, REALISTIC OUTPUT**: Crisp edges, balanced lighting, and realistic materials. No sketch/hand‑drawn look.
-5) **NO EXTRA CONTENT**: Do not add rooms, furniture, or objects that are not clearly indicated by the plan.
+ABSOLUTE RULES (never violate):
+1. REMOVE ALL TEXT: No labels, dimensions, room names, numbers, or annotations anywhere in the output.
+2. MATCH GEOMETRY EXACTLY: Walls, rooms, doors, windows must follow the exact layout of the plan — no additions or removals.
+3. STRICT TOP-DOWN ORTHOGRAPHIC VIEW: Pure overhead view, no perspective tilt, no camera angle. Like looking straight down from above.
+4. OUTPUT ONLY THE FLOOR PLAN RENDER: No background, no border, no watermark, no shadow outside the building footprint.
 
-STRUCTURE & DETAILS:
-- **Walls**: Extrude precisely from the plan lines. Consistent wall height and thickness.
-- **Doors**: Convert door swing arcs into open doors, aligned to the plan.
-- **Windows**: Convert thin perimeter lines into realistic glass windows.
+VISUAL STYLE — aim for premium architectural visualization:
+- Overall palette: warm neutral tones — soft whites, light greiges, warm beiges
+- Floor: light oak hardwood planks with realistic wood grain in living/bedroom areas; large-format light grey porcelain tiles in kitchen/bathroom/hallways
+- Walls: clean, smooth matte white with subtle depth from soft shadows inside the room
+- Soft diffuse daylight from above, casting gentle drop-shadows on walls and furniture
 
-FURNITURE & ROOM MAPPING (only where icons/fixtures are clearly shown):
-- Bed icon → realistic bed with duvet and pillows.
-- Sofa icon → modern sectional or sofa.
-- Dining table icon → table with chairs.
-- Kitchen icon → counters with sink and stove.
-- Bathroom icon → toilet, sink, and tub/shower.
-- Office/study icon → desk, chair, and minimal shelving.
-- Porch/patio/balcony icon → outdoor seating or simple furniture (keep minimal).
-- Utility/laundry icon → washer/dryer and minimal cabinetry.
+FURNITURE & FINISHES (add tasteful, proportional furniture appropriate to each room):
+- Living room: modern low-profile sectional sofa in light grey fabric, rectangular coffee table (light oak top), a small green potted plant
+- Dining area: rectangular dining table (white or light wood), 4–6 upholstered chairs around it, small plant centerpiece
+- Bedroom: platform bed with white bedding and 2 pillows, matching bedside tables, area rug underneath
+- Children's / guest bedroom: twin beds with blue/neutral bedding, small desk if space allows
+- Kitchen: L-shaped or U-shaped counters with light stone worktop, integrated sink, stove hob, light-wood cabinets
+- Bathroom: white toilet, white pedestal/vanity sink, walk-in shower or bathtub with glass screen
+- Hallways & corridors: keep clean, minimal — occasional small plant or wall detail
+- Balcony/terrace: 2 outdoor chairs + small table, potted plants
 
-STYLE & LIGHTING:
-- Lighting: bright, neutral daylight. High clarity and balanced contrast.
-- Materials: realistic wood/tile floors, clean walls, subtle shadows.
-- Finish: professional architectural visualization; no text, no watermarks, no logos.
+LIGHTING & RENDERING QUALITY:
+- Studio-quality render: sharp edges, clean anti-aliasing, no pixelation
+- Lighting: bright, balanced, warm-neutral ambient daylight
+- Each room has a subtle vignette shadow at the base of walls to give depth
+- No harsh dark shadows; keep the render bright and airy
+- Final result must look like a premium interior design presentation board
 `.trim();

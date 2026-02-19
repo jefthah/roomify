@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useLocation } from "react-router";
 import { generate3DView } from "../../lib/ai.action";
+import { updateProjectRender } from "../../lib/puter.action";
 import { Box, Download, RefreshCcw, Share2, X } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { useParams } from "react-router";
@@ -24,6 +25,16 @@ const Visualizer = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isProcessing) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isProcessing]);
 
   const projectName = project?.name ?? initialName ?? "Untitled Project";
 
@@ -41,6 +52,7 @@ const Visualizer = () => {
 
       if (result && result.renderedImage) {
         setCurrentImage(result.renderedImage);
+        if (id) updateProjectRender(id, result.renderedImage).catch(() => {});
       }
     } catch (error) {
       if (signal?.aborted) return;
@@ -162,7 +174,7 @@ const Visualizer = () => {
                   <RefreshCcw className="spinner" />
                   <span className="title">Rendering...</span>
                   <span className="subtitle">
-                    This may take up to 90 seconds
+                    {elapsedSeconds}s &mdash; may take up to 2 minutes
                   </span>
                 </div>
               </div>

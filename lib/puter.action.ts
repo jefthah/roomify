@@ -149,6 +149,37 @@ export const createProjectUser = async ({
   }
 };
 
+export const updateProjectRender = async (
+  id: string,
+  renderedImage: string,
+): Promise<void> => {
+  if (!isOnPuter()) {
+    try {
+      const existing = await kvGetProject(id);
+      if (existing) {
+        await kvSaveProject({ ...existing, renderedImage });
+      }
+    } catch (e) {
+      console.warn("Dev: failed to update render in kv", e);
+    }
+    return;
+  }
+  try {
+    const response = await workerFetch(
+      `${PUTER_WORKER_URL}/api/projects/save`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project: { id, renderedImage } }),
+      },
+    );
+    if (!response.ok)
+      console.warn("Failed to update render in production worker");
+  } catch (e) {
+    console.warn("Failed to update render", e);
+  }
+};
+
 export const getProjects = async (): Promise<DesignItem[]> => {
   // ── Dev mode: bypass worker ──
   if (!isOnPuter()) {
