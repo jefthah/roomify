@@ -97,7 +97,6 @@ export default function App() {
           signOut,
         }}
       />
-      ;
     </main>
   );
 }

@@ -1,6 +1,8 @@
 import puter from "@heyputer/puter.js";
 import { ROOMIFY_RENDER_PROMPT } from "./constants";
 
+const AI_TIMEOUT_MS = 90_000; // 90 seconds max
+
 export const fetchAsDataUrl = async (url: string): Promise<string> => {
   const response = await fetch(url);
 
@@ -19,33 +21,45 @@ export const fetchAsDataUrl = async (url: string): Promise<string> => {
 };
 
 export interface Generate3DViewParams {
-    sourceImage: string;
+  sourceImage: string;
 }
 
 export const generate3DView = async ({ sourceImage }: Generate3DViewParams) => {
-    const dataUrl = sourceImage.startsWith('data:')
+  const dataUrl = sourceImage.startsWith("data:")
     ? sourceImage
     : await fetchAsDataUrl(sourceImage);
 
-    const base64Data = dataUrl.split(',')[1];
-    const mimeType = dataUrl.split(';')[0].split(':')[1];
+  const base64Data = dataUrl.split(",")[1];
+  const mimeType = dataUrl.split(";")[0].split(":")[1];
 
-    if (!mimeType || !base64Data) throw new Error('Invalid source image payload');
+  if (!mimeType || !base64Data) throw new Error("Invalid source image payload");
 
-    const response = await puter.ai.txt2img(ROOMIFY_RENDER_PROMPT, {
-        provider: 'gemini',
-        model: 'gemini-1.5-flash',
-        input_image: base64Data,
-        input_image_mime_type: mimeType,
-        ratio: { w: 1024, h: 1024}
-    });
+  // Race the AI call against a timeout so the spinner never hangs forever
+  const aiCall = puter.ai.txt2img(ROOMIFY_RENDER_PROMPT, {
+    model: "dall-e-3", // reliable Puter-supported model for image gen
+    input_image: base64Data,
+    input_image_mime_type: mimeType,
+  });
 
-    const rawImageUrl = (response as HTMLImageElement).src ?? null;
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(
+      () =>
+        reject(
+          new Error(`AI generation timed out after ${AI_TIMEOUT_MS / 1000}s`),
+        ),
+      AI_TIMEOUT_MS,
+    ),
+  );
 
-    if (!rawImageUrl) return { renderedImage: null, renderedPath: undefined};
+  const response = await Promise.race([aiCall, timeout]);
 
-    const renderedImage = rawImageUrl.startsWith('data:')
-    ? rawImageUrl: await fetchAsDataUrl(rawImageUrl);
+  const rawImageUrl = (response as HTMLImageElement).src ?? null;
 
-    return { renderedImage, renderedPath: undefined };
+  if (!rawImageUrl) return { renderedImage: null, renderedPath: undefined };
+
+  const renderedImage = rawImageUrl.startsWith("data:")
+    ? rawImageUrl
+    : await fetchAsDataUrl(rawImageUrl);
+
+  return { renderedImage, renderedPath: undefined };
 };

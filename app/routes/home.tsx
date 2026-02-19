@@ -4,8 +4,8 @@ import { ArrowRight, ArrowUp, ArrowUpRight, Clock, Layers } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import Upload from "../../components/ui/Upload";
 import { useNavigate } from "react-router";
-import { useState } from "react";
-import { createProjectUser } from "../../lib/puter.action";
+import { useEffect, useRef, useState } from "react";
+import { createProjectUser, getProjects } from "../../lib/puter.action";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -17,37 +17,59 @@ export function meta({}: Route.MetaArgs) {
 export default function Home() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<DesignItem[]>([]);
+  const isCreatingProjectRef = useRef(false);
+
+  useEffect(() => {
+    getProjects().then((fetched) => {
+      if (fetched.length > 0) setProjects(fetched);
+    });
+  }, []);
 
   const handleUploadComplete = async (base64Image: string) => {
-    const newId = Date.now().toString();
-    const name = `Residence ${newId}`;
+    if (isCreatingProjectRef.current) return false;
+    isCreatingProjectRef.current = true;
 
-    const newItem = {
-      id: newId,
-      name,
-      sourceImage: base64Image,
-      renderedImage: undefined,
-      timestamp: Date.now(),
-    };
+    try {
+      const newId = Date.now().toString();
+      const name = `Residence ${newId}`;
 
-    const saved = await createProjectUser({ item: newItem, visibility: 'private' });
-
-    if (!saved) {
-      console.error('failed to create project');
-      return false
-    }
-
-    setProjects((prev) => [newItem, ...prev]);
-
-    sessionStorage.setItem(`roomify-upload-${newId}`, base64Image);
-
-    navigate(`/visualize/${newId}`, {
-      state: {
-        initialImage: saved.sourceImage,
-        initialRender: saved.renderedImage || null,
+      const newItem = {
+        id: newId,
         name,
+        sourceImage: base64Image,
+        renderedImage: undefined,
+        timestamp: Date.now(),
+      };
+
+      const saved = await createProjectUser({
+        item: newItem,
+        visibility: "private",
+      });
+
+      if (!saved) {
+        console.error("failed to create project");
+        return false;
       }
-    });
+
+      setProjects((prev) => [newItem, ...prev]);
+
+      sessionStorage.setItem(`roomify-upload-${newId}`, base64Image);
+
+      navigate(`/visualize/${newId}`, {
+        state: {
+          initialImage: saved.sourceImage,
+          initialRender: saved.renderedImage || null,
+          name,
+        },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Failed to create project:", error);
+      return false;
+    } finally {
+      isCreatingProjectRef.current = false;
+    }
   };
   return (
     <div className="home">
@@ -108,36 +130,49 @@ export default function Home() {
           </div>
 
           <div className="projects-grid">
-            {projects.map(({id, name, renderedImage, sourceImage, timestamp}) => (
-            <div key={id} className="project-card group">
-              <div className="preview">
-                <img
-                  src={renderedImage || sourceImage}
-                  alt={name || "Project"}
-                />
+            {projects.map(
+              ({ id, name, renderedImage, sourceImage, timestamp }) => (
+                <div
+                  key={id}
+                  className="project-card group"
+                  onClick={() =>
+                    navigate(`/visualize/${id}`, {
+                      state: {
+                        initialImage: sourceImage,
+                        initialRender: renderedImage || null,
+                        name,
+                      },
+                    })
+                  }
+                >
+                  <div className="preview">
+                    <img
+                      src={renderedImage || sourceImage}
+                      alt={name || "Project"}
+                    />
 
-                <div className="card-body">
-                  <span>Community</span>
-                </div>
-              </div>
+                    <div className="card-body">
+                      <span>Community</span>
+                    </div>
+                  </div>
 
-              <div className="card-body">
-                <div>
-                  <h3>{name}</h3>
-                  <div className="meta">
-                    <Clock size={12} />
-                    <span>{new Date(timestamp).toLocaleDateString()}</span>
-                    <span>By Jefta Supraja</span>
+                  <div className="card-body">
+                    <div>
+                      <h3>{name}</h3>
+                      <div className="meta">
+                        <Clock size={12} />
+                        <span>{new Date(timestamp).toLocaleDateString()}</span>
+                        <span>By Jefta Supraja</span>
+                      </div>
+                    </div>
+
+                    <div className="arrow">
+                      <ArrowUpRight size={18} />
+                    </div>
                   </div>
                 </div>
-
-                <div className="arrow">
-                  <ArrowUpRight size={18} />
-                </div>
-              </div>
-            </div>
-
-            ))}
+              ),
+            )}
           </div>
         </div>
       </section>
